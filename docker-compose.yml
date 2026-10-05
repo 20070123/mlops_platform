@@ -1,0 +1,7 @@
+services:
+  inference:
+    image: medical-rewrite:v1
+    container_name: medical-api
+    ports:
+      - "8000:8000"
+    restart: always
