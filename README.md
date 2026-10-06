@@ -41,7 +41,6 @@ cd mlops_platform
 cp .env.example .env
 ```
 
-#编辑 .env 文件，填入真实的 API 密钥
 **3. 一键启动所有服务**
 ```bash
 docker compose up -d --build
