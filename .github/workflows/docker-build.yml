@@ -1,0 +1,62 @@
+name: Build and Push Docker Images
+
+# 1. 触发条件：当你向 main 分支推送代码时触发
+on:
+  push:
+    branches: [ "main" ]
+
+# 2. 定义环境变量：使用 GitHub 容器镜像仓库 (GHCR)
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}  # 自动解析为 20070123/mlops_platform
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    # 3. 赋予权限：允许读取代码，并允许写入包（镜像）
+    permissions:
+      contents: read
+      packages: write
+
+    # 4. 矩阵策略：一次性并行构建 4 个镜像，非常高效
+    strategy:
+      matrix:
+        include:
+          - service: doctor-backend
+            dockerfile: Dockerfile.doctor-backend
+          - service: ops-backend
+            dockerfile: Dockerfile.ops-backend
+          - service: ops-frontend
+            dockerfile: Dockerfile.ops-frontend
+          - service: doctor-frontend
+            dockerfile: Dockerfile.doctor-frontend
+
+    steps:
+      # 步骤 1：拉取你刚刚推送的代码
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 步骤 2：登录 GitHub 容器镜像仓库
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }} # GitHub 自动生成的临时密钥，不用你手动配
+
+      # 步骤 3：自动生成镜像标签（比如 latest 和 代码的 commit 哈希值）
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}
+
+      # 步骤 4：构建并推送镜像
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
