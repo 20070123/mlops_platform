@@ -6,7 +6,8 @@ load_dotenv()
 import logging
 
 import docker
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends, HTTPException, Header, Security
+from fastapi.security import APIKeyHeader
 from pydantic import BaseModel
 from slowapi import Limiter
 from slowapi.middleware import SlowAPIMiddleware
@@ -30,23 +31,38 @@ def root():
 client = docker.from_env()
 API_KEY = os.getenv("OPS_API_KEY")
 if not API_KEY:
-    raise RuntimeError("必须设置 API_KEY 环境变量（参考 .env.example）")
+    raise RuntimeError("必须设置 OPS_API_KEY 环境变量（参考 .env.example）")
+
+ops_key_header = APIKeyHeader(name="X-Ops-Key")
+
+def verify_ops_key(api_key: str = Security(ops_key_header)):
+    if api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid Ops Key")
+    return api_key
+
 
 @app.get("/services")
 def list_services():
     containers = client.containers.list(all=True)
     result = []
     for c in containers:
+        try:
+            # 尝试获取镜像标签
+            image_tag = c.image.tags[0] if c.image.tags else "unknown"
+        except docker.errors.ImageNotFound:
+            # 如果引用的镜像已被删除，给个兜底值，不让接口崩掉
+            image_tag = "unknown (image not found)"
+
         result.append({
             "name": c.name,
             "status": c.status,
-            "image": c.image.tags[0] if c.image.tags else "unknown"
+            "image": image_tag
         })
     return {"count": len(result), "services": result}
 
 @app.post("/services/{name}/start")
 @limiter.limit("5/minute")
-def start_service(request: Request, name: str):
+def start_service(request: Request, name: str, _: str = Depends(verify_ops_key)):
     try:
         container = client.containers.get(name)
         container.start()
@@ -58,7 +74,7 @@ def start_service(request: Request, name: str):
 
 @app.post("/services/{name}/stop")
 @limiter.limit("5/minute")
-def stop_service(request: Request, name: str):
+def stop_service(request: Request, name: str, _: str = Depends(verify_ops_key)):
     try:
         container = client.containers.get(name)
         container.stop()
@@ -70,7 +86,7 @@ def stop_service(request: Request, name: str):
 
 @app.delete("/services/{name}")
 @limiter.limit("5/minute")
-def delete_service(request: Request, name: str):
+def delete_service(request: Request, name: str, _: str = Depends(verify_ops_key)):
     try:
         container = client.containers.get(name)
         container.remove(force=True)
@@ -87,7 +103,7 @@ class DeployRequest(BaseModel):
 
 @app.post("/services/{name}/deploy")
 @limiter.limit("5/minute")
-def deploy_service(request: Request, name: str, req: DeployRequest):
+def deploy_service(request: Request, name: str, req: DeployRequest, _: str = Depends(verify_ops_key)):
     try:
         try:
             client.images.get(req.image)

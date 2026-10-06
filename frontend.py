@@ -4,6 +4,7 @@ import requests
 import streamlit as st
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:9000")
+OPS_API_KEY = os.getenv("OPS_API_KEY", "ops_secret")
 
 STATUS_MAP = {
     "running": "🟢 运行中",
@@ -46,16 +47,22 @@ for svc in data["services"]:
     with col3:
         st.write(svc["image"])
     with col4:
-        if st.button("启动", key=f"start_{svc["name"]}"):
-            requests.post(f"{BACKEND_URL}/services/{svc['name']}/start")
+        if st.button("启动", key=f"start_{svc['name']}"):
+            requests.post(f"{BACKEND_URL}/services/{svc['name']}/start",
+                          headers={"X-Ops-Key": OPS_API_KEY}
+            )
             st.rerun()
     with col5:
-        if st.button("停止", key=f"stop_{svc["name"]}"):
-            requests.post(f"{BACKEND_URL}/services/{svc['name']}/stop")
+        if st.button("停止", key=f"stop_{svc['name']}"):
+            requests.post(f"{BACKEND_URL}/services/{svc['name']}/stop",
+                          headers={"X-Ops-Key": OPS_API_KEY}
+                          )
             st.rerun()
     with col6:
-        if st.button("删除", key=f"remove_{svc["name"]}"):
-            requests.delete(f"{BACKEND_URL}/services/{svc['name']}")
+        if st.button("删除", key=f"remove_{svc['name']}"):
+            requests.delete(f"{BACKEND_URL}/services/{svc['name']}",
+                            headers={"X-Ops-Key": OPS_API_KEY}
+                            )
             st.rerun()
     with col7:
         if st.button("发布", key=f"deploy_{svc['name']}"):
@@ -72,7 +79,8 @@ new_port = st.number_input("宿主机端口", value=8001, step=1)
 if st.button("创建服务", key="create_service"):
     requests.post(
         f"{BACKEND_URL}/services/{new_name}/deploy",
-        json={"image": new_image, "host_port": new_port}
+        json={"image": new_image, "host_port": new_port},
+        headers={"X-Ops-Key": OPS_API_KEY}
     )
     st.rerun()
 
@@ -85,7 +93,8 @@ def deploy_dialog():
     if st.button("确认发布", key="confirm_deploy"):
         requests.post(
             f"{BACKEND_URL}/services/{st.session_state.deploy_target}/deploy",
-            json={"image": deploy_image, "host_port": int(deploy_port)}
+            json={"image": deploy_image, "host_port": int(deploy_port)},
+            headers={"X-Ops-Key": OPS_API_KEY}
         )
         st.session_state.deploy_target = None
         st.rerun()

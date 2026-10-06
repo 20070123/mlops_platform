@@ -7,7 +7,8 @@ import logging
 
 import docker
 import requests
-from fastapi import FastAPI, Header, Request
+from fastapi import FastAPI, Header, Request, Depends, HTTPException, Security
+from fastapi.security import APIKeyHeader
 from slowapi import Limiter
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
@@ -26,7 +27,14 @@ logger = logging.getLogger(__name__)
 client = docker.from_env()
 API_KEY = os.getenv("DOCTOR_API_KEY")
 if not API_KEY:
-    raise RuntimeError("必须设置 API_KEY 环境变量（参考 .env.example）")
+    raise RuntimeError("必须设置 DOCTOR_API_KEY 环境变量（参考 .env.example）")
+
+doctor_key_header = APIKeyHeader(name="X-Doctor-Key")
+
+def verify_doctor_key(api_key: str = Security(doctor_key_header)):
+    if api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid Doctor Key")
+    return api_key
 
 DOCKER_HOST_IP = os.getenv("DOCKER_HOST_IP", "127.0.0.1")
 
@@ -45,7 +53,12 @@ def list_models():
 
 @app.post("/predict/{model_name}")
 @limiter.limit("10/minute")
-def doctor_predict(request: Request, model_name: str, body: dict, x_client_id: str = Header(default="unknown")):
+def doctor_predict(request: Request,
+                   model_name: str,
+                   body: dict,
+                   x_client_id: str = Header(default="unknown"),
+                   _: str = Depends(verify_doctor_key)
+    ):
     try:
         container = client.containers.get(model_name)
         if container.status != "running":

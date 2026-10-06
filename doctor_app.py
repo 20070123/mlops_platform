@@ -4,6 +4,7 @@ import requests
 import streamlit as st
 
 DOCTOR_BACKEND_URL = os.getenv("DOCTOR_BACKEND_URL", "http://127.0.0.1:9002")
+DOCTOR_KEY = os.getenv("DOCTOR_API_KEY", "doctor_secret")
 
 st.set_page_config(page_title="医生端预测", layout="wide")
 st.title("医疗模型预测平台")
@@ -37,7 +38,9 @@ if st.button("预测"):
             response = requests.post(
                 f"{DOCTOR_BACKEND_URL}/predict/{selected_model}",
                 json=payload,
-                headers={"X-Client-ID": "doctor-app"},
+                headers={"X-Client-ID": "doctor-app",
+                         "X-Doctor-Key": DOCTOR_KEY
+                },
                 timeout=10
             )
             result = response.json()

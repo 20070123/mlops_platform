@@ -2,3 +2,6 @@ fastapi
 uvicorn
 docker
 streamlit
+python-dotenv
+requests
+slowapi

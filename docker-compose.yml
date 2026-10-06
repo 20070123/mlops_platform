@@ -1,7 +1,73 @@
 services:
+  # 1. 推理服务（模型后端）
   inference:
-    image: medical-rewrite:v1
+    image: medical-rewrite:v4
     container_name: medical-api
     ports:
       - "8000:8000"
+    environment:
+      - DOCTOR_API_KEY=${DOCTOR_API_KEY:-doctor_secret}  # 补上医生端的鉴权 Key
+      - MODEL_VERSION=${MODEL_VERSION:-v999}             # 补上模型版本
+      - MODEL_PATH=${MODEL_PATH:-models/model.joblib}    # 补上模型路径
+    volumes:
+      - ../mlops_demo/models:/app/models                 # 把 mlops_demo 目录下的模型挂载进来（确保容器能读到模型文件）
+    restart: always
+
+  # 2. 运维后端（管理 Docker 容器）
+  ops-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.ops-backend
+    container_name: ops-backend
+    ports:
+      - "9000:9000"
+    environment:
+      - OPS_API_KEY=${OPS_API_KEY:-ops_secret}
+    volumes:
+      - //var/run/docker.sock:/var/run/docker.sock
+    restart: always
+
+  # 3. 运维前端
+  ops-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.ops-frontend
+    container_name: ops-frontend
+    ports:
+      - "8501:8501"
+    environment:
+      - BACKEND_URL=http://ops-backend:9000
+      - OPS_API_KEY=${OPS_API_KEY:-ops_secret}
+    depends_on:
+      - ops-backend
+    restart: always
+
+  # 4. 医生后端（转发预测请求）
+  doctor-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.doctor-backend
+    container_name: doctor-backend
+    ports:
+      - "9002:9002"
+    environment:
+      - DOCTOR_API_KEY=${DOCTOR_API_KEY:-doctor_secret}
+      - DOCKER_HOST_IP=host.docker.internal
+    volumes:
+      - //var/run/docker.sock:/var/run/docker.sock
+    restart: always
+
+  # 5. 医生前端
+  doctor-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.doctor-frontend
+    container_name: doctor-frontend
+    ports:
+      - "8502:8502"
+    environment:
+      - DOCTOR_BACKEND_URL=http://doctor-backend:9002
+      - DOCTOR_API_KEY=${DOCTOR_API_KEY:-doctor_secret}
+    depends_on:
+      - doctor-backend
     restart: always
