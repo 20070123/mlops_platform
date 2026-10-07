@@ -50,7 +50,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
-    logger.error(f"未捕获的异常: {exc!s} [{request.state.request_id}]")
+    logger.error(f"未捕获的异常: {exc!s} [{request.state.request_id}] 客户端:{x_client_id}")
     return error_response("服务器内部错误，请稍后重试", 500)
 
 limiter = Limiter(key_func=get_remote_address)
@@ -95,7 +95,7 @@ def doctor_predict(request: Request,
     try:
         container = client.containers.get(model_name)
         if container.status != "running":
-            logger.warning(f"模型当前不可用 [{request.state.request_id}]: {model_name}")
+            logger.warning(f"模型当前不可用 [{request.state.request_id}]: {model_name} 客户端:{x_client_id}")
             return {"status": "error", "message": "该模型当前不可用"}
 
         ports = container.attrs["NetworkSettings"]["Ports"]
@@ -107,11 +107,11 @@ def doctor_predict(request: Request,
         }
         response = requests.post(target_url, json=body, headers=headers, timeout=10)
 
-        logger.info(f"预测请求成功 [{request.state.request_id}]")
+        logger.info(f"预测请求成功 [{request.state.request_id}] 客户端:{x_client_id}")
         return response.json()
     except docker.errors.NotFound:
-        logger.error(f"模型不存在 [{request.state.request_id}]: {model_name}")
+        logger.error(f"模型不存在 [{request.state.request_id}]: {model_name} 客户端:{x_client_id}")
         return {"status": "error", "message": f"模型{model_name}不存在"}
     except (docker.errors.APIError, requests.RequestException) as e:
-        logger.error(f"转发预测请求失败 [{request.state.request_id}]: {e!s}")
+        logger.error(f"转发预测请求失败 [{request.state.request_id}]: {e!s} 客户端:{x_client_id}")
         return {"status": "error", "message": "预测失败，请稍后重试"}

@@ -24,7 +24,8 @@ try:
         f"{BACKEND_URL}/services",
         headers={
             "X-Ops-Key": OPS_API_KEY,
-            "X-Request-ID": str(uuid.uuid4())
+            "X-Request-ID": str(uuid.uuid4()),
+            "X-Client-ID": "ops-web"
         },
         timeout=10
     )
@@ -63,7 +64,8 @@ for svc in data["services"]:
                 f"{BACKEND_URL}/services/{svc['name']}/start",
                 headers={
                     "X-Ops-Key": OPS_API_KEY,
-                    "X-Request-ID": str(uuid.uuid4())
+                    "X-Request-ID": str(uuid.uuid4()),
+                    "X-Client-ID": "ops-web"
                 }
             )
             st.rerun()
@@ -73,7 +75,8 @@ for svc in data["services"]:
                 f"{BACKEND_URL}/services/{svc['name']}/stop",
                 headers={
                     "X-Ops-Key": OPS_API_KEY,
-                    "X-Request-ID": str(uuid.uuid4())
+                    "X-Request-ID": str(uuid.uuid4()),
+                    "X-Client-ID": "ops-web"
                 }
             )
             st.rerun()
@@ -83,7 +86,8 @@ for svc in data["services"]:
                 f"{BACKEND_URL}/services/{svc['name']}",
                 headers={
                     "X-Ops-Key": OPS_API_KEY,
-                    "X-Request-ID": str(uuid.uuid4())
+                    "X-Request-ID": str(uuid.uuid4()),
+                    "X-Client-ID": "ops-web"
                 }
             )
             st.rerun()
@@ -105,7 +109,8 @@ if st.button("创建服务", key="create_service"):
         json={"image": new_image, "host_port": new_port},
         headers={
             "X-Ops-Key": OPS_API_KEY,
-            "X-Request-ID": str(uuid.uuid4())
+            "X-Request-ID": str(uuid.uuid4()),
+            "X-Client-ID": "ops-web"
         }
     )
     st.rerun()
@@ -122,7 +127,8 @@ def deploy_dialog():
             json={"image": deploy_image, "host_port": int(deploy_port)},
             headers={
                 "X-Ops-Key": OPS_API_KEY,
-                "X-Request-ID": str(uuid.uuid4())
+                "X-Request-ID": str(uuid.uuid4()),
+                "X-Client-ID": "ops-web"
             }
         )
         st.session_state.deploy_target = None
