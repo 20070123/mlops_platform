@@ -1,4 +1,5 @@
 import os
+import uuid
 
 import requests
 import streamlit as st
@@ -19,7 +20,17 @@ st.title("MLOps 模型服务管理平台")
 if "deploy_target" not in st.session_state:
     st.session_state.deploy_target = None
 try:
-    response = requests.get(f"{BACKEND_URL}/services", timeout=10)
+    response = requests.get(
+        f"{BACKEND_URL}/services",
+        headers={
+            "X-Ops-Key": OPS_API_KEY,
+            "X-Request-ID": str(uuid.uuid4())
+        },
+        timeout=10
+    )
+    if response.status_code != 200:
+        st.error(f"加载服务列表失败: {response.json().get('message', '未知错误')}")
+        st.stop()
     data = response.json()
 except (requests.ConnectionError, requests.Timeout):
     st.error("⚠️ 无法连接到运维后端，请稍后重试。")
@@ -48,21 +59,33 @@ for svc in data["services"]:
         st.write(svc["image"])
     with col4:
         if st.button("启动", key=f"start_{svc['name']}"):
-            requests.post(f"{BACKEND_URL}/services/{svc['name']}/start",
-                          headers={"X-Ops-Key": OPS_API_KEY}
+            requests.post(
+                f"{BACKEND_URL}/services/{svc['name']}/start",
+                headers={
+                    "X-Ops-Key": OPS_API_KEY,
+                    "X-Request-ID": str(uuid.uuid4())
+                }
             )
             st.rerun()
     with col5:
         if st.button("停止", key=f"stop_{svc['name']}"):
-            requests.post(f"{BACKEND_URL}/services/{svc['name']}/stop",
-                          headers={"X-Ops-Key": OPS_API_KEY}
-                          )
+            requests.post(
+                f"{BACKEND_URL}/services/{svc['name']}/stop",
+                headers={
+                    "X-Ops-Key": OPS_API_KEY,
+                    "X-Request-ID": str(uuid.uuid4())
+                }
+            )
             st.rerun()
     with col6:
         if st.button("删除", key=f"remove_{svc['name']}"):
-            requests.delete(f"{BACKEND_URL}/services/{svc['name']}",
-                            headers={"X-Ops-Key": OPS_API_KEY}
-                            )
+            requests.delete(
+                f"{BACKEND_URL}/services/{svc['name']}",
+                headers={
+                    "X-Ops-Key": OPS_API_KEY,
+                    "X-Request-ID": str(uuid.uuid4())
+                }
+            )
             st.rerun()
     with col7:
         if st.button("发布", key=f"deploy_{svc['name']}"):
@@ -80,7 +103,10 @@ if st.button("创建服务", key="create_service"):
     requests.post(
         f"{BACKEND_URL}/services/{new_name}/deploy",
         json={"image": new_image, "host_port": new_port},
-        headers={"X-Ops-Key": OPS_API_KEY}
+        headers={
+            "X-Ops-Key": OPS_API_KEY,
+            "X-Request-ID": str(uuid.uuid4())
+        }
     )
     st.rerun()
 
@@ -94,7 +120,10 @@ def deploy_dialog():
         requests.post(
             f"{BACKEND_URL}/services/{st.session_state.deploy_target}/deploy",
             json={"image": deploy_image, "host_port": int(deploy_port)},
-            headers={"X-Ops-Key": OPS_API_KEY}
+            headers={
+                "X-Ops-Key": OPS_API_KEY,
+                "X-Request-ID": str(uuid.uuid4())
+            }
         )
         st.session_state.deploy_target = None
         st.rerun()
