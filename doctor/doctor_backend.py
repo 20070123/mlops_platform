@@ -101,6 +101,18 @@ def list_models(_: str = Depends(verify_doctor_key)):
             result.append(c.name)
     return {"models": result}
 
+@app.get("/v1/model_info")
+def get_model_info(_: str = Depends(verify_doctor_key)):
+    try:
+        target_url = f"http://{DOCKER_HOST_IP}:8000/v1/schema"
+        response = requests.get(target_url, timeout=5)
+        if response.status_code == 200:
+            return response.json()
+        return {"status": "error", "message": "获取模型配置失败"}
+    except requests.RequestException as e:
+        logger.error(f"获取模型配置失败: {e!s}")
+        return {"status": "error", "message": "连接推理服务失败"}
+
 
 @app.post("/v1/predict/{model_name}")
 @limiter.limit("10/minute")
@@ -122,7 +134,7 @@ def doctor_predict(
         ports = container.attrs["NetworkSettings"]["Ports"]
         host_port = ports["8000/tcp"][0]["HostPort"]
 
-        target_url = f"http://{DOCKER_HOST_IP}:{host_port}/predict"
+        target_url = f"http://{DOCKER_HOST_IP}:{host_port}/v1/predict"
         headers = {"X-API-KEY": API_KEY, "X-Client-ID": x_client_id}
         response = requests.post(target_url, json=body, headers=headers, timeout=10)
 

@@ -66,9 +66,31 @@ with col_input:
     selected_model = st.selectbox("选择模型", models)
     st.divider()
 
-    age = st.number_input("年龄", value=60, min_value=0, max_value=120)
-    heart_rate = st.number_input("心率", value=85, min_value=20, max_value=250)
-    spo2 = st.number_input("血氧", value=95, min_value=0, max_value=100)
+    # 1. 获取动态特征配置
+    try:
+        info_resp = requests.get(
+            f"{DOCTOR_BACKEND_URL}/v1/model_info",
+            headers={"X-Doctor-Key": DOCTOR_KEY, "X-Request-ID": str(uuid.uuid4())},
+            timeout=5
+        )
+        if info_resp.status_code != 200:
+            st.error(f"加载特征配置失败: {info_resp.json().get('message', '未知错误')}")
+            st.stop()
+        features = info_resp.json().get("features", [])
+    except (requests.ConnectionError, requests.Timeout):
+        st.error("无法连接到模型服务获取配置，请稍后重试。")
+        st.stop()
+
+    # 2. 动态生成输入框
+    user_inputs = {}
+    for feature in features:
+        user_inputs[feature["name"]] = st.number_input(
+            feature["label"],
+            value=float(feature.get("default", 0.0)),
+            min_value=float(feature.get("min", 0.0)),
+            max_value=float(feature.get("max", 1000.0)),
+            step=float(feature.get("step", 1.0))
+        )
 
     st.divider()
     predict_clicked = st.button("🚀 开始预测", use_container_width=True)
@@ -98,7 +120,7 @@ with col_result:
 if predict_clicked:
     req_id = str(uuid.uuid4())
     st.session_state.req_id = req_id
-    payload = {"age": int(age), "heart_rate": int(heart_rate), "spo2": int(spo2)}
+    payload = user_inputs
     with st.spinner("正在预测，请稍后..."):
         try:
             response = requests.post(
