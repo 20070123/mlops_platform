@@ -23,13 +23,13 @@ jobs:
       matrix:
         include:
           - service: doctor-backend
-            dockerfile: Dockerfile.doctor-backend
-          - service: ops-backend
-            dockerfile: Dockerfile.ops-backend
-          - service: ops-frontend
-            dockerfile: Dockerfile.ops-frontend
+            dockerfile: doctor/Dockerfile.backend  # 更新路径
           - service: doctor-frontend
-            dockerfile: Dockerfile.doctor-frontend
+            dockerfile: doctor/Dockerfile.frontend # 更新路径
+          - service: ops-backend
+            dockerfile: ops/Dockerfile.backend     # 更新路径
+          - service: ops-frontend
+            dockerfile: ops/Dockerfile.frontend    # 更新路径
 
     steps:
       # 步骤 1：拉取你刚刚推送的代码
