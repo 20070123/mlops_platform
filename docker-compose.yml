@@ -9,6 +9,7 @@ services:
       - DOCTOR_API_KEY=${DOCTOR_API_KEY:-doctor_secret}  # 补上医生端的鉴权 Key
       - MODEL_VERSION=${MODEL_VERSION:-v999}             # 补上模型版本
       - MODEL_PATH=${MODEL_PATH:-models/model.joblib}    # 补上模型路径
+      - APP_ENV=${APP_ENV:-dev}
     volumes:
       - ../mlops_demo/models:/app/models                 # 把 mlops_demo 目录下的模型挂载进来（确保容器能读到模型文件）
     restart: always
@@ -23,6 +24,7 @@ services:
       - "9000:9000"
     environment:
       - OPS_API_KEY=${OPS_API_KEY:-ops_secret}
+      - APP_ENV=${APP_ENV:-dev}
     volumes:
       - //var/run/docker.sock:/var/run/docker.sock
     restart: always
@@ -53,6 +55,7 @@ services:
     environment:
       - DOCTOR_API_KEY=${DOCTOR_API_KEY:-doctor_secret}
       - DOCKER_HOST_IP=host.docker.internal
+      - APP_ENV=${APP_ENV:-dev}
     volumes:
       - //var/run/docker.sock:/var/run/docker.sock
     restart: always

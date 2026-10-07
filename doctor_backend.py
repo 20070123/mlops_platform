@@ -1,6 +1,8 @@
 import os
 import uuid
 
+APP_ENV = os.getenv("APP_ENV", "dev")
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -23,7 +25,10 @@ from slowapi import Limiter
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
-app = FastAPI(title="医生端后端")
+app=FastAPI(title="医生端后端", 
+    docs_url="/docs" if APP_ENV == "dev" else None,
+    redoc_url="/redoc" if APP_ENV == "dev" else None
+)
 
 @app.middleware("http")
 async def add_request_id(request: Request, call_next):
