@@ -38,7 +38,7 @@ st.markdown("<h1 class='main-title'>🏥 智能医疗辅助诊断平台</h1>", u
 
 try:
     response = requests.get(
-        f"{DOCTOR_BACKEND_URL}/models",
+        f"{DOCTOR_BACKEND_URL}/v1/models",
         headers={
             "X-Doctor-Key": DOCTOR_KEY,
         },
@@ -99,7 +99,7 @@ if predict_clicked:
     with st.spinner("正在预测，请稍后..."):
         try:
             response = requests.post(
-                f"{DOCTOR_BACKEND_URL}/predict/{selected_model}",
+                f"{DOCTOR_BACKEND_URL}/v1/predict/{selected_model}",
                 json=payload,
                 headers={
                     "X-Client-ID": "doctor-app",

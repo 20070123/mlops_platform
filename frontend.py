@@ -21,7 +21,7 @@ if "deploy_target" not in st.session_state:
     st.session_state.deploy_target = None
 try:
     response = requests.get(
-        f"{BACKEND_URL}/services",
+        f"{BACKEND_URL}/v1/services",
         headers={
             "X-Ops-Key": OPS_API_KEY,
             "X-Request-ID": str(uuid.uuid4()),
@@ -61,7 +61,7 @@ for svc in data["services"]:
     with col4:
         if st.button("启动", key=f"start_{svc['name']}"):
             requests.post(
-                f"{BACKEND_URL}/services/{svc['name']}/start",
+                f"{BACKEND_URL}/v1/services/{svc['name']}/start",
                 headers={
                     "X-Ops-Key": OPS_API_KEY,
                     "X-Request-ID": str(uuid.uuid4()),
@@ -72,7 +72,7 @@ for svc in data["services"]:
     with col5:
         if st.button("停止", key=f"stop_{svc['name']}"):
             requests.post(
-                f"{BACKEND_URL}/services/{svc['name']}/stop",
+                f"{BACKEND_URL}/v1/services/{svc['name']}/stop",
                 headers={
                     "X-Ops-Key": OPS_API_KEY,
                     "X-Request-ID": str(uuid.uuid4()),
@@ -83,7 +83,7 @@ for svc in data["services"]:
     with col6:
         if st.button("删除", key=f"remove_{svc['name']}"):
             requests.delete(
-                f"{BACKEND_URL}/services/{svc['name']}",
+                f"{BACKEND_URL}/v1/services/{svc['name']}",
                 headers={
                     "X-Ops-Key": OPS_API_KEY,
                     "X-Request-ID": str(uuid.uuid4()),
@@ -105,7 +105,7 @@ new_port = st.number_input("宿主机端口", value=8001, step=1)
 
 if st.button("创建服务", key="create_service"):
     requests.post(
-        f"{BACKEND_URL}/services/{new_name}/deploy",
+        f"{BACKEND_URL}/v1/services/{new_name}/deploy",
         json={"image": new_image, "host_port": new_port},
         headers={
             "X-Ops-Key": OPS_API_KEY,
@@ -123,7 +123,7 @@ def deploy_dialog():
     
     if st.button("确认发布", key="confirm_deploy"):
         requests.post(
-            f"{BACKEND_URL}/services/{st.session_state.deploy_target}/deploy",
+            f"{BACKEND_URL}/v1/services/{st.session_state.deploy_target}/deploy",
             json={"image": deploy_image, "host_port": int(deploy_port)},
             headers={
                 "X-Ops-Key": OPS_API_KEY,

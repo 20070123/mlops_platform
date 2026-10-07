@@ -79,7 +79,7 @@ def verify_ops_key(api_key: str = Security(ops_key_header)):
     return api_key
 
 
-@app.get("/services")
+@app.get("/v1/services")
 def list_services(_: str = Depends(verify_ops_key)):
     containers = client.containers.list(all=True)
     result = []
@@ -98,7 +98,7 @@ def list_services(_: str = Depends(verify_ops_key)):
         })
     return {"count": len(result), "services": result}
 
-@app.post("/services/{name}/start")
+@app.post("/v1/services/{name}/start")
 @limiter.limit("5/minute")
 def start_service(request: Request, name: str, x_client_id: str = Header(default="unknown"), _: str = Depends(verify_ops_key)):
     try:
@@ -110,7 +110,7 @@ def start_service(request: Request, name: str, x_client_id: str = Header(default
         logger.error(f"启动容器 {name} 失败： {e!s} [{request.state.request_id}] 操作人:{x_client_id}")
         return {"status": "error", "message": "操作失败，请稍后重试"}
 
-@app.post("/services/{name}/stop")
+@app.post("/v1/services/{name}/stop")
 @limiter.limit("5/minute")
 def stop_service(request: Request, name: str, x_client_id: str = Header(default="unknown"), _: str = Depends(verify_ops_key)):
     try:
@@ -122,7 +122,7 @@ def stop_service(request: Request, name: str, x_client_id: str = Header(default=
         logger.error(f"停止容器 {name} 失败： {e!s} [{request.state.request_id}] 操作人:{x_client_id}")
         return {"status": "error", "message": "操作失败，请稍后重试"}
 
-@app.delete("/services/{name}")
+@app.delete("/v1/services/{name}")
 @limiter.limit("5/minute")
 def delete_service(request: Request, name: str, x_client_id: str = Header(default="unknown"), _: str = Depends(verify_ops_key)):
     try:
@@ -139,7 +139,7 @@ class DeployRequest(BaseModel):
     host_port: int = 8000
 
 
-@app.post("/services/{name}/deploy")
+@app.post("/v1/services/{name}/deploy")
 @limiter.limit("5/minute")
 def deploy_service(request: Request, name: str, req: DeployRequest, x_client_id: str = Header(default="unknown"), _: str = Depends(verify_ops_key)):
     try:

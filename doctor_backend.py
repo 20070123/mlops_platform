@@ -80,7 +80,7 @@ DOCKER_HOST_IP = os.getenv("DOCKER_HOST_IP", "127.0.0.1")
 def root():
     return {"message": "Doctor Backend is running"}
 
-@app.get("/models")
+@app.get("/v1/models")
 def list_models(_: str = Depends(verify_doctor_key)):
     containers = client.containers.list(filters={"status": "running"})
     result = []
@@ -89,7 +89,7 @@ def list_models(_: str = Depends(verify_doctor_key)):
             result.append(c.name)
     return {"models": result}
 
-@app.post("/predict/{model_name}")
+@app.post("/v1/predict/{model_name}")
 @limiter.limit("10/minute")
 def doctor_predict(request: Request,
                    model_name: str,
