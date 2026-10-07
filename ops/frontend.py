@@ -16,7 +16,10 @@ STATUS_MAP = {
 }
 
 st.set_page_config(page_title="MLOps 运维管理平台", page_icon="🫆", layout="wide")
-st.markdown("<h1 style='text-align: center; color: #1E90FF;'>🫆 MLOps 模型服务管理平台</h1>", unsafe_allow_html=True)
+st.markdown(
+    "<h1 style='text-align: center; color: #1E90FF;'>🫆 MLOps 模型服务管理平台</h1>",
+    unsafe_allow_html=True,
+)
 
 if "deploy_target" not in st.session_state:
     st.session_state.deploy_target = None
@@ -26,9 +29,9 @@ try:
         headers={
             "X-Ops-Key": OPS_API_KEY,
             "X-Request-ID": str(uuid.uuid4()),
-            "X-Client-ID": "ops-web"
+            "X-Client-ID": "ops-web",
         },
-        timeout=10
+        timeout=10,
     )
     if response.status_code != 200:
         st.error(f"加载服务列表失败: {response.json().get('message', '未知错误')}")
@@ -51,7 +54,7 @@ with h4:
     st.write("**操作**")
 
 for svc in data["services"]:
-    col1, col2, col3, col4, col5, col6, col7 = st.columns([3,2,3,2,2,2,2])
+    col1, col2, col3, col4, col5, col6, col7 = st.columns([3, 2, 3, 2, 2, 2, 2])
     with col1:
         st.write(svc["name"])
     with col2:
@@ -66,8 +69,8 @@ for svc in data["services"]:
                 headers={
                     "X-Ops-Key": OPS_API_KEY,
                     "X-Request-ID": str(uuid.uuid4()),
-                    "X-Client-ID": "ops-web"
-                }
+                    "X-Client-ID": "ops-web",
+                },
             )
             st.rerun()
     with col5:
@@ -77,8 +80,8 @@ for svc in data["services"]:
                 headers={
                     "X-Ops-Key": OPS_API_KEY,
                     "X-Request-ID": str(uuid.uuid4()),
-                    "X-Client-ID": "ops-web"
-                }
+                    "X-Client-ID": "ops-web",
+                },
             )
             st.rerun()
     with col6:
@@ -88,8 +91,8 @@ for svc in data["services"]:
                 headers={
                     "X-Ops-Key": OPS_API_KEY,
                     "X-Request-ID": str(uuid.uuid4()),
-                    "X-Client-ID": "ops-web"
-                }
+                    "X-Client-ID": "ops-web",
+                },
             )
             st.rerun()
     with col7:
@@ -111,17 +114,18 @@ if st.button("创建服务", key="create_service"):
         headers={
             "X-Ops-Key": OPS_API_KEY,
             "X-Request-ID": str(uuid.uuid4()),
-            "X-Client-ID": "ops-web"
-        }
+            "X-Client-ID": "ops-web",
+        },
     )
     st.rerun()
+
 
 @st.dialog("发布新版本")
 def deploy_dialog():
     st.write(f"服务: {st.session_state.deploy_target}")
     deploy_image = st.text_input("新镜像名", value="medical-rewrite:v1")
     deploy_port = st.number_input("宿主机端口", value=8000, step=1)
-    
+
     if st.button("确认发布", key="confirm_deploy"):
         requests.post(
             f"{BACKEND_URL}/v1/services/{st.session_state.deploy_target}/deploy",
@@ -129,11 +133,12 @@ def deploy_dialog():
             headers={
                 "X-Ops-Key": OPS_API_KEY,
                 "X-Request-ID": str(uuid.uuid4()),
-                "X-Client-ID": "ops-web"
-            }
+                "X-Client-ID": "ops-web",
+            },
         )
         st.session_state.deploy_target = None
         st.rerun()
+
 
 if st.session_state.deploy_target:
     deploy_dialog()
