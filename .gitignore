@@ -7,6 +7,7 @@ __pycache__/
 
 # pytest 缓存
 .pytest_cache/
+.ruff_cache/
 
 # 模型文件（如果以后放这里）
 *.joblib

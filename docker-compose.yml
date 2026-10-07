@@ -18,7 +18,7 @@ services:
   ops-backend:
     build:
       context: .
-      dockerfile: Dockerfile.ops-backend
+      dockerfile: ops/Dockerfile.backend
     container_name: ops-backend
     ports:
       - "9000:9000"
@@ -33,7 +33,7 @@ services:
   ops-frontend:
     build:
       context: .
-      dockerfile: Dockerfile.ops-frontend
+      dockerfile: ops/Dockerfile.frontend
     container_name: ops-frontend
     ports:
       - "8501:8501"
@@ -48,7 +48,7 @@ services:
   doctor-backend:
     build:
       context: .
-      dockerfile: Dockerfile.doctor-backend
+      dockerfile: doctor/Dockerfile.backend
     container_name: doctor-backend
     ports:
       - "9002:9002"
@@ -64,7 +64,7 @@ services:
   doctor-frontend:
     build:
       context: .
-      dockerfile: Dockerfile.doctor-frontend
+      dockerfile: doctor/Dockerfile.frontend
     container_name: doctor-frontend
     ports:
       - "8502:8502"
