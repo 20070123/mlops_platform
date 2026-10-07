@@ -61,7 +61,8 @@ docker compose ps
 
 ## 📦 医院内网离线部署指南
 由于医院内网通常与互联网物理隔离，无法直接从 GitHub 拉取镜像。请按以下步骤离线部署：
-**1.在外部网络导出镜像：**
+
+**1. 在外部网络导出镜像：**
 ```bash
 docker save -o mlops_platform.tar mlops_platform-doctor-backend mlops_platform-doctor-frontend mlops_platform-ops-backend mlops_platform-ops-frontend medical-rewrite:v4
 ```
