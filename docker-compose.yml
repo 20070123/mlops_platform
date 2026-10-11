@@ -11,7 +11,11 @@ services:
       - MODEL_PATH=${MODEL_PATH:-models/model.joblib}    # 补上模型路径
       - APP_ENV=${APP_ENV:-dev}
     volumes:
-      - ../mlops_demo/models:/app/models                 # 把 mlops_demo 目录下的模型挂载进来（确保容器能读到模型文件）
+      - ../mlops_demo/models:/app/models      
+    labels:
+      - "mlops.type=model-service"           # 把 mlops_demo 目录下的模型挂载进来（确保容器能读到模型文件）
+      - "mlops.display_name=心血管风险评估"
+      - "mlops.input_count=3" 
     restart: always
 
   # 2. 运维后端（管理 Docker 容器）
@@ -25,8 +29,10 @@ services:
     environment:
       - OPS_API_KEY=${OPS_API_KEY:-ops_secret}
       - APP_ENV=${APP_ENV:-dev}
+      - DOCTOR_API_KEY=${DOCTOR_API_KEY:-doctor_secret}
     volumes:
       - //var/run/docker.sock:/var/run/docker.sock
+      - ../mlops_demo/models:/data/models
     restart: always
 
   # 3. 运维前端

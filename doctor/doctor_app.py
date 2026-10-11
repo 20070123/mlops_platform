@@ -52,7 +52,11 @@ try:
     if response.status_code != 200:
         st.error(f"加载模型列表失败: {response.json().get('message', '未知错误')}")
         st.stop()
-    models = response.json()["models"]
+    models_data = response.json()["models"]
+    model_options = {
+        m["name"]: f"{m['display_name']}（输入 {m['input_count']} 项）"
+        for m in models_data
+    }
 except (requests.ConnectionError, requests.Timeout):
     st.error("无法连接到模型服务，请稍后重试。")
     st.stop()
@@ -61,9 +65,10 @@ col_input, col_result = st.columns([1, 1], gap="large")
 
 with col_input:
     st.subheader("📋 患者信息录入")
-    if not models:
+    if not model_options:
         st.warning("⚠️ 当前没有可用的模型，请等待运维人员部署。")
-    selected_model = st.selectbox("选择模型", models)
+    selected_display = st.selectbox("选择模型", list(model_options.values()))
+    selected_model = [k for k, v in model_options.items() if v == selected_display][0]
     st.divider()
 
     # 1. 获取动态特征配置

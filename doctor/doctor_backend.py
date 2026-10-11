@@ -94,17 +94,20 @@ def root():
 
 @app.get("/v1/models")
 def list_models(_: str = Depends(verify_doctor_key)):
-    containers = client.containers.list(filters={"status": "running"})
+    containers = client.containers.list(filters={"label": "mlops.type=model-service"})
     result = []
     for c in containers:
-        if c.name.startswith("medical"):
-            result.append(c.name)
+        result.append({
+            "name": c.name,
+            "display_name": c.labels.get("mlops.display_name", c.name),
+            "input_count": c.labels.get("mlops.input_count", "?"),
+        })
     return {"models": result}
 
 @app.get("/v1/model_info")
 def get_model_info(_: str = Depends(verify_doctor_key)):
     try:
-        target_url = f"http://{DOCKER_HOST_IP}:8000/v1/schema"
+        target_url = f"http://medical-api:8000/v1/schema"
         response = requests.get(target_url, timeout=5)
         if response.status_code == 200:
             return response.json()
@@ -131,11 +134,12 @@ def doctor_predict(
             )
             return {"status": "error", "message": "该模型当前不可用"}
 
-        ports = container.attrs["NetworkSettings"]["Ports"]
-        host_port = ports["8000/tcp"][0]["HostPort"]
-
-        target_url = f"http://{DOCKER_HOST_IP}:{host_port}/v1/predict"
-        headers = {"X-API-KEY": API_KEY, "X-Client-ID": x_client_id}
+        target_url = f"http://{model_name}:8000/v1/predict"
+        
+        headers = {"X-API-KEY": API_KEY,
+                   "X-Client-ID": x_client_id,
+                   "X-Request-ID": request.state.request_id
+        }
         response = requests.post(target_url, json=body, headers=headers, timeout=10)
 
         logger.info(f"预测请求成功 [{request.state.request_id}] 客户端:{x_client_id}")
