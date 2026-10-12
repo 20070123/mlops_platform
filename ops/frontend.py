@@ -111,6 +111,24 @@ st.subheader("新建服务")
 new_name = st.text_input("服务名称", value="medical-api-2")
 new_image = st.text_input("镜像名称", value="medical-rewrite:v4")
 new_model_path = st.text_input("模型文件夹路径（宿主机）", value="E:\\mlops_demo\\models")
+
+with st.expander("📁 模型文件夹标准结构（点击查看）"):
+    st.markdown(
+        "模型文件夹必须包含以下两个文件：\n\n"
+        "    模型文件夹/\n"
+        "    ├── model.joblib      # 模型文件\n"
+        "    └── schema.json       # 特征配置文件\n\n"
+        "**schema.json 示例：**\n\n"
+        "    {\n"
+        '      "metadata": {"display_name": "心血管风险评估", "input_count": 3},\n'
+        '      "features": [\n'
+        '        {"name": "age", "label": "年龄", "type": "float", "min": 0, "max": 120, "default": 60},\n'
+        '        {"name": "heart_rate", "label": "心率", "type": "float", "min": 20, "max": 250, "default": 85},\n'
+        '        {"name": "spo2", "label": "血氧", "type": "float", "min": 0, "max": 100, "default": 95}\n'
+        "      ]\n"
+        "    }\n"
+    )
+
 new_display_name = st.text_input("模型显示名称", value="心血管风险评估")
 new_input_count = st.number_input("输入特征数", value=3, step=1)
 new_port = st.number_input("宿主机端口", value=8001, step=1)

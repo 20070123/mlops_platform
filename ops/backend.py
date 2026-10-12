@@ -214,6 +214,20 @@ def deploy_service(
         except docker.errors.NotFound:
             pass
 
+        # 检查端口是否已被其他容器占用
+        used_ports = set()
+        for c in client.containers.list():
+            ports = c.attrs.get("NetworkSettings", {}).get("Ports", {}) or {}
+            for container_port, bindings in ports.items():
+                if bindings:
+                    for b in bindings:
+                        used_ports.add(b.get("HostPort"))
+
+        if str(req.host_port) in used_ports:
+            return {"status": "error", "message": f"端口 {req.host_port} 已被占用，请换一个端口"}
+
+        import time
+        time.sleep(2)
         # 3. 启动新容器
         try:
             container = client.containers.run(
@@ -246,15 +260,27 @@ def deploy_service(
         base_url = f"http://{name}:8000"
 
         def rollback():
-            container.remove(force=True)
+            # 1. 尝试删掉新容器（不管它是什么状态）
+            try:
+                c = client.containers.get(name)
+                c.remove(force=True)
+            except docker.errors.NotFound:
+                pass
+            except Exception as e:
+                logger.error(f"回滚时删除新容器失败：{e!s}")
+
+            # 2. 尝试恢复旧容器
             if old_container:
-                old_container.rename(name)
-                old_container.start()
-                logger.info(f"已回滚到旧容器 {name} [{request.state.request_id}]")
+                try:
+                    old_container.rename(name)
+                    old_container.start()
+                    logger.info(f"已回滚到旧容器 {name} [{request.state.request_id}]")
+                except Exception as e:
+                    logger.error(f"回滚恢复旧容器失败：{e!s}")
 
         # 4.1 等待 /ready
         ready = False
-        for _ in range(15):
+        for _ in range(30):
             container.reload()
             if container.status != "running":
                 rollback()

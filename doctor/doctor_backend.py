@@ -104,10 +104,10 @@ def list_models(_: str = Depends(verify_doctor_key)):
         })
     return {"models": result}
 
-@app.get("/v1/model_info")
-def get_model_info(_: str = Depends(verify_doctor_key)):
+@app.get("/v1/model_info/{model_name}")
+def get_model_info(model_name: str, _: str = Depends(verify_doctor_key)):
     try:
-        target_url = f"http://medical-api:8000/v1/schema"
+        target_url = f"http://{model_name}:8000/v1/schema"
         response = requests.get(target_url, timeout=5)
         if response.status_code == 200:
             return response.json()

@@ -74,7 +74,7 @@ with col_input:
     # 1. 获取动态特征配置
     try:
         info_resp = requests.get(
-            f"{DOCTOR_BACKEND_URL}/v1/model_info",
+            f"{DOCTOR_BACKEND_URL}/v1/model_info/{selected_model}",
             headers={"X-Doctor-Key": DOCTOR_KEY, "X-Request-ID": str(uuid.uuid4())},
             timeout=5
         )
