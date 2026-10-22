@@ -107,11 +107,24 @@ with col_result:
     else:
         res = st.session_state.prediction_result
         if res.get("status") == "success":
-            if res["prediction"] == 1:
-                st.error(f"⚠️ 预测结果：高风险\n\n患病概率：{res['probability']:.2%}")
+            # 判断返回值里有没有 probability 字段，来区分是分类还是回归/聚类
+            if "probability" in res:
+                # ============ 分类任务 ============
+                if res["prediction"] == 1:
+                    st.error(f"⚠️ 预测结果：高风险\n\n患病概率：{res['probability']:.2%}")
+                else:
+                    st.success(f"✅ 预测结果：低风险\n\n患病概率：{res['probability']:.2%}")
             else:
-                st.success(f"✅ 预测结果：低风险\n\n患病概率：{res['probability']:.2%}")
-
+                # ============ 回归 / 聚类任务 ============
+                pred_val = res.get("prediction")
+                st.info(f"📊 预测结果：{pred_val}")
+                
+                # 简单判断一下类型，给出友好的解释
+                if isinstance(pred_val, int) or isinstance(pred_val, float) and pred_val.is_integer():
+                    st.caption("注：该结果为模型分配的类别/簇号。")
+                else:
+                    st.caption("注：该结果为模型预测的具体数值。")
+          
             # 把模型版本号和追踪代码收进一个“小抽屉”里，默认隐藏
             with st.expander("ℹ️ 技术详情"):
                 st.caption(f"模型版本：{res['model_version']}")

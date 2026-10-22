@@ -250,11 +250,26 @@ def deploy_service(
                 network="mlops_platform_default",
             )
         except docker.errors.APIError as e:
-            if old_container:
-                old_container.rename(name)
-                old_container.start()
-            return {"status": "error", "message": f"启动新容器失败：{e!s}，已回滚到旧版本"}
+            # 1. 先删掉创建失败的新容器（如果存在）
+            try:
+                c = client.containers.get(name)
+                c.remove(force=True)
+            except Exception:
+                pass
 
+            # 2. 尝试恢复旧容器
+            if old_container:
+                try:
+                    old_container.rename(name)
+                    old_container.start()
+                except Exception as restore_err:
+                    logger.error(f"恢复旧容器失败：{restore_err!s}")
+
+            error_msg = str(e)
+            if "port is already allocated" in error_msg or "ports are not available" in error_msg or "forbidden by its access permissions" in error_msg:
+                return {"status": "error", "message": f"端口 {req.host_port} 不可用（可能被系统保留或被占用），请换一个端口"}
+            return {"status": "error", "message": f"启动新容器失败：{error_msg[:200]}，已回滚到旧版本"}
+       
         # 4. 部署自检
         import time
         base_url = f"http://{name}:8000"
@@ -284,7 +299,10 @@ def deploy_service(
             container.reload()
             if container.status != "running":
                 rollback()
-                return {"status": "error", "message": "自检失败：容器状态异常，已回滚到旧版本"}
+                if old_container:
+                    return {"status": "error", "message": f"自检失败：容器状态异常({container.status})，已回滚到旧版本"}
+                else:
+                    return {"status": "error", "message": f"自检失败：容器状态异常({container.status})，容器已清理"}
             try:
                 resp = requests.get(f"{base_url}/ready", timeout=3)
                 if resp.status_code == 200:
@@ -296,18 +314,27 @@ def deploy_service(
 
         if not ready:
             rollback()
-            return {"status": "error", "message": "自检失败：模型加载超时，已回滚到旧版本"}
-
+            if old_container:
+                return {"status": "error", "message": "自检失败：模型加载超时，已回滚到旧版本"}
+            else:
+                return {"status": "error", "message": "自检失败：模型加载超时，容器已清理"}
+    
         # 4.2 检查 /v1/schema
         try:
             schema_resp = requests.get(f"{base_url}/v1/schema", timeout=5)
             features = schema_resp.json().get("features", [])
             if not features:
                 rollback()
-                return {"status": "error", "message": "自检失败：schema.json 缺少 features，已回滚"}
+                if old_container:
+                    return {"status": "error", "message": "自检失败：schema.json 缺少 features，已回滚到旧版本"}
+                else:
+                    return {"status": "error", "message": "自检失败：schema.json 缺少 features，容器已清理"}
         except requests.RequestException as e:
             rollback()
-            return {"status": "error", "message": f"自检失败：schema 接口不可达，已回滚。{e!s}"}
+            if old_container:
+                return {"status": "error", "message": f"自检失败：schema 接口不可达，已回滚。{e!s}"}
+            else:
+                return {"status": "error", "message": f"自检失败：schema 接口不可达，容器已清理。{e!s}"}
 
         # 4.3 调 /v1/predict
         try:
@@ -320,13 +347,16 @@ def deploy_service(
             )
             if predict_resp.status_code != 200 or predict_resp.json().get("status") != "success":
                 rollback()
-                return {
-                    "status": "error",
-                    "message": f"自检失败：预测接口异常，已回滚。响应：{predict_resp.text[:200]}",
-                }
+                if old_container:
+                    return {"status": "error", "message": "自检失败：模型不支持该预测方式，已回滚到旧版本"}
+                else:
+                    return {"status": "error", "message": "自检失败：模型不支持该预测方式，容器已清理"}
         except requests.RequestException as e:
             rollback()
-            return {"status": "error", "message": f"自检失败：预测接口不可达，已回滚。{e!s}"}
+            if old_container:
+                return {"status": "error", "message": f"自检失败：预测接口失效，已回滚。{e!s}"}
+            else:
+                return {"status": "error", "message": f"自检失败：预测接口失效，容器已清理。{e!s}"}
 
         # 5. 自检通过，删掉旧备份容器
         if old_container:

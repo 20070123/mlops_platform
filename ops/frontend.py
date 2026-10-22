@@ -21,159 +21,189 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-if "deploy_target" not in st.session_state:
-    st.session_state.deploy_target = None
-try:
-    response = requests.get(
-        f"{BACKEND_URL}/v1/services",
-        headers={
-            "X-Ops-Key": OPS_API_KEY,
-            "X-Request-ID": str(uuid.uuid4()),
-            "X-Client-ID": "ops-web",
-        },
-        timeout=10,
-    )
-    if response.status_code != 200:
-        st.error(f"加载服务列表失败: {response.json().get('message', '未知错误')}")
+tab1, tab2 = st.tabs(["⚙️ 服务管理", "📖 模型交付规范"])
+
+with tab1:
+    if "deploy_target" not in st.session_state:
+        st.session_state.deploy_target = None
+    try:
+        response = requests.get(
+            f"{BACKEND_URL}/v1/services",
+            headers={
+                "X-Ops-Key": OPS_API_KEY,
+                "X-Request-ID": str(uuid.uuid4()),
+                "X-Client-ID": "ops-web",
+            },
+            timeout=10,
+        )
+        if response.status_code != 200:
+            st.error(f"加载服务列表失败: {response.json().get('message', '未知错误')}")
+            st.stop()
+        data = response.json()
+    except (requests.ConnectionError, requests.Timeout):
+        st.error("⚠️ 无法连接到运维后端，请稍后重试。")
         st.stop()
-    data = response.json()
-except (requests.ConnectionError, requests.Timeout):
-    st.error("⚠️ 无法连接到运维后端，请稍后重试。")
-    st.stop()
 
-st.write(f"当前共有 {data['count']} 个服务")
+    st.write(f"当前共有 {data['count']} 个服务")
 
-h1, h2, h3, h4, h5 = st.columns([3, 2, 3, 3, 5])
-with h1:
-    st.write("**服务名**")
-with h2:
-    st.write("**状态**")
-with h3:
-    st.write("**模型名称**")
-with h4:
-    st.write("**输入数**")
-with h5:
-    st.write("**操作**")
+    h1, h2, h3, h4, h5 = st.columns([3, 2, 3, 3, 5])
+    with h1:
+        st.write("**服务名**")
+    with h2:
+        st.write("**状态**")
+    with h3:
+        st.write("**模型名称**")
+    with h4:
+        st.write("**输入数**")
+    with h5:
+        st.write("**操作**")
 
-for svc in data["services"]:
-    col1, col2, col3, col4, col5 = st.columns([3, 2, 3, 2, 5])
-    with col1:
-        st.write(svc["name"])
-    with col2:
-        st.write(STATUS_MAP.get(svc["status"], svc["status"]))
-    with col3:
-        st.write(svc.get("display_name", "-") or "-")
-    with col4:
-        st.write(svc.get("input_count", "-") or "-")
-    with col5:
-        btn1, btn2, btn3, btn4 = st.columns(4)
-        with btn1:
-            if st.button("启动", key=f"start_{svc['name']}"):
-                requests.post(
-                    f"{BACKEND_URL}/v1/services/{svc['name']}/start",
-                    headers={
-                        "X-Ops-Key": OPS_API_KEY,
-                        "X-Request-ID": str(uuid.uuid4()),
-                        "X-Client-ID": "ops-web",
-                    },
-                )
-                st.rerun()
-        with btn2:
-            if st.button("停止", key=f"stop_{svc['name']}"):
-                requests.post(
-                    f"{BACKEND_URL}/v1/services/{svc['name']}/stop",
-                    headers={
-                        "X-Ops-Key": OPS_API_KEY,
-                        "X-Request-ID": str(uuid.uuid4()),
-                        "X-Client-ID": "ops-web",
-                    },
-                )
-                st.rerun()
-        with btn3:
-            if st.button("删除", key=f"remove_{svc['name']}"):
-                requests.delete(
-                    f"{BACKEND_URL}/v1/services/{svc['name']}",
-                    headers={
-                        "X-Ops-Key": OPS_API_KEY,
-                        "X-Request-ID": str(uuid.uuid4()),
-                        "X-Client-ID": "ops-web",
-                    },
-                )
-                st.rerun()
-        with btn4:
-            if st.button("发布", key=f"deploy_{svc['name']}"):
-                st.session_state.deploy_target = svc["name"]
-                st.rerun()
+    for svc in data["services"]:
+        col1, col2, col3, col4, col5 = st.columns([3, 2, 3, 2, 5])
+        with col1:
+            st.write(svc["name"])
+        with col2:
+            st.write(STATUS_MAP.get(svc["status"], svc["status"]))
+        with col3:
+            st.write(svc.get("display_name", "-") or "-")
+        with col4:
+            st.write(svc.get("input_count", "-") or "-")
+        with col5:
+            btn1, btn2, btn3, btn4 = st.columns(4)
+            with btn1:
+                if st.button("启动", key=f"start_{svc['name']}"):
+                    requests.post(
+                        f"{BACKEND_URL}/v1/services/{svc['name']}/start",
+                        headers={
+                            "X-Ops-Key": OPS_API_KEY,
+                            "X-Request-ID": str(uuid.uuid4()),
+                            "X-Client-ID": "ops-web",
+                        },
+                    )
+                    st.rerun()
+            with btn2:
+                if st.button("停止", key=f"stop_{svc['name']}"):
+                    requests.post(
+                        f"{BACKEND_URL}/v1/services/{svc['name']}/stop",
+                        headers={
+                            "X-Ops-Key": OPS_API_KEY,
+                            "X-Request-ID": str(uuid.uuid4()),
+                            "X-Client-ID": "ops-web",
+                        },
+                    )
+                    st.rerun()
+            with btn3:
+                if st.button("删除", key=f"remove_{svc['name']}"):
+                    requests.delete(
+                        f"{BACKEND_URL}/v1/services/{svc['name']}",
+                        headers={
+                            "X-Ops-Key": OPS_API_KEY,
+                            "X-Request-ID": str(uuid.uuid4()),
+                            "X-Client-ID": "ops-web",
+                        },
+                    )
+                    st.rerun()
+            with btn4:
+                if st.button("发布", key=f"deploy_{svc['name']}"):
+                    st.session_state.deploy_target = svc["name"]
+                    st.rerun()
 
-st.divider()
-st.subheader("新建服务")
+    st.divider()
+    st.subheader("新建服务")
 
-new_name = st.text_input("服务名称", value="medical-api-2")
-new_image = st.text_input("镜像名称", value="medical-rewrite:v4")
-new_model_path = st.text_input("模型文件夹路径（宿主机）", value="E:\\mlops_demo\\models")
+    new_name = st.text_input("服务名称", value="medical-api-2")
+    new_image = st.text_input("镜像名称", value="medical-rewrite:v4")
+    new_model_path = st.text_input("模型文件夹路径（宿主机）", value="E:\\mlops_demo\\models")
+    new_display_name = st.text_input("模型显示名称", value="心血管风险评估")
+    new_input_count = st.number_input("输入特征数", value=3, step=1)
+    new_port = st.number_input("宿主机端口", value=8001, step=1)
 
-with st.expander("📁 模型文件夹标准结构（点击查看）"):
-    st.markdown(
-        "模型文件夹必须包含以下两个文件：\n\n"
-        "    模型文件夹/\n"
-        "    ├── model.joblib      # 模型文件\n"
-        "    └── schema.json       # 特征配置文件\n\n"
-        "**schema.json 示例：**\n\n"
-        "    {\n"
-        '      "metadata": {"display_name": "心血管风险评估", "input_count": 3},\n'
-        '      "features": [\n'
-        '        {"name": "age", "label": "年龄", "type": "float", "min": 0, "max": 120, "default": 60},\n'
-        '        {"name": "heart_rate", "label": "心率", "type": "float", "min": 20, "max": 250, "default": 85},\n'
-        '        {"name": "spo2", "label": "血氧", "type": "float", "min": 0, "max": 100, "default": 95}\n'
-        "      ]\n"
-        "    }\n"
-    )
-
-new_display_name = st.text_input("模型显示名称", value="心血管风险评估")
-new_input_count = st.number_input("输入特征数", value=3, step=1)
-new_port = st.number_input("宿主机端口", value=8001, step=1)
-
-if st.button("创建服务", key="create_service"):
-    resp = requests.post(
-        f"{BACKEND_URL}/v1/services/{new_name}/deploy",
-        json={
-            "image": new_image,
-            "host_port": new_port,
-            "model_path": new_model_path,
-            "display_name": new_display_name,
-            "input_count": new_input_count,
-        },
-        headers={
-            "X-Ops-Key": OPS_API_KEY,
-            "X-Request-ID": str(uuid.uuid4()),
-            "X-Client-ID": "ops-web",
-        },
-    )
-    if resp.status_code >= 400 or resp.json().get("status") == "error":
-        st.error(f"创建失败：{resp.json().get('message', '未知错误')}")
-        st.stop()
-    st.rerun()
-
-
-@st.dialog("发布新版本")
-def deploy_dialog():
-    st.write(f"服务: {st.session_state.deploy_target}")
-    deploy_image = st.text_input("新镜像名", value="medical-rewrite:v1")
-    deploy_port = st.number_input("宿主机端口", value=8000, step=1)
-
-    if st.button("确认发布", key="confirm_deploy"):
-        requests.post(
-            f"{BACKEND_URL}/v1/services/{st.session_state.deploy_target}/deploy",
-            json={"image": deploy_image, "host_port": int(deploy_port)},
+    if st.button("创建服务", key="create_service"):
+        resp = requests.post(
+            f"{BACKEND_URL}/v1/services/{new_name}/deploy",
+            json={
+                "image": new_image,
+                "host_port": new_port,
+                "model_path": new_model_path,
+                "display_name": new_display_name,
+                "input_count": new_input_count,
+            },
             headers={
                 "X-Ops-Key": OPS_API_KEY,
                 "X-Request-ID": str(uuid.uuid4()),
                 "X-Client-ID": "ops-web",
             },
         )
-        st.session_state.deploy_target = None
+        if resp.status_code >= 400 or resp.json().get("status") == "error":
+            st.error(f"创建失败：{resp.json().get('message', '未知错误')}")
+            st.stop()
         st.rerun()
 
 
-if st.session_state.deploy_target:
-    deploy_dialog()
+    @st.dialog("发布新版本")
+    def deploy_dialog():
+        st.write(f"服务: {st.session_state.deploy_target}")
+        deploy_image = st.text_input("新镜像名", value="medical-rewrite:v1")
+        deploy_port = st.number_input("宿主机端口", value=8000, step=1)
+
+        if st.button("确认发布", key="confirm_deploy"):
+            requests.post(
+                f"{BACKEND_URL}/v1/services/{st.session_state.deploy_target}/deploy",
+                json={"image": deploy_image, "host_port": int(deploy_port)},
+                headers={
+                    "X-Ops-Key": OPS_API_KEY,
+                    "X-Request-ID": str(uuid.uuid4()),
+                    "X-Client-ID": "ops-web",
+                },
+            )
+            st.session_state.deploy_target = None
+            st.rerun()
+
+
+    if st.session_state.deploy_target:
+        deploy_dialog()
+
+with tab2:
+    st.subheader("📁 模型文件夹标准结构")
+    st.markdown("""
+    模型文件夹必须包含以下两个文件：
+    ```
+    模型文件夹/
+    ├── model.joblib      # 模型权重文件
+    └── schema.json       # 特征配置文件
+    ```
+    """)
+    
+    st.subheader("💻 算法代码交付样板")
+    st.markdown("为了确保平台兼容性，分类和回归任务必须使用 Pipeline。无监督聚类任务如不涉及量纲差异，可直接导出模型：")
+    st.code("""
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+import joblib
+
+# 必须打包预处理和模型
+model = Pipeline([
+    ('scaler', StandardScaler()),
+    ('classifier', LogisticRegression())
+])
+model.fit(X_train, y_train)
+joblib.dump(model, 'model.joblib')
+    """, language="python")
+
+    st.subheader("📄 schema.json 配置示例")
+    st.markdown("`schema.json` 用于告诉前端如何生成表单，格式必须如下：")
+    st.code("""
+{
+  "metadata": {
+    "display_name": "心血管风险评估",
+    "input_count": 3,
+    "task_type": "classification"
+  },
+  "features": [
+    {"name": "age", "label": "年龄", "type": "float", "min": 0, "max": 120, "step": 1, "default": 60},
+    {"name": "heart_rate", "label": "心率", "type": "float", "min": 20, "max": 250, "step": 1, "default": 85},
+    {"name": "spo2", "label": "血氧", "type": "float", "min": 0, "max": 100, "step": 1, "default": 95}
+  ]
+}
+    """, language="json")

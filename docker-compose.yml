@@ -14,7 +14,7 @@ services:
       - ../mlops_demo/models:/app/models      
     labels:
       - "mlops.type=model-service"           # 把 mlops_demo 目录下的模型挂载进来（确保容器能读到模型文件）
-      - "mlops.display_name=心血管风险评估"
+      - "mlops.display_name=测试模型1"
       - "mlops.input_count=3" 
     restart: always
 
